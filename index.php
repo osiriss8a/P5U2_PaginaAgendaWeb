@@ -1,149 +1,313 @@
-
-
 <?php
+require_once "conexion.php";
 
-// Limpia el texto antes de mostrarlo en HTML.
-function e(?string $texto): string
-{
-    return htmlspecialchars($texto ?? '', ENT_QUOTES, 'UTF-8');
-}
+$resultado = $pdo->query(
+    "SELECT id, nombre FROM categorias ORDER BY nombre"
+);
 
-// Convierte la fecha al formato día/mes/año.
-function formatearFecha(string $fecha): string
-{
-    return date('d/m/Y', strtotime($fecha));
-}
-
-// Convierte la clave de la categoría en un nombre legible.
-function nombreCategoria(string $clave): string
-{
-    $nombres = [
-        'trabajo' => 'Trabajo',
-        'personal' => 'Personal',
-        'estudio' => 'Estudio',
-        'ocio' => 'Ocio / Deporte',
-    ];
-
-    return $nombres[$clave] ?? $clave;
-}
-
-// Arreglo con los tres eventos de ejemplo.
-$eventos = [
-    [
-        'id' => 1,
-        'titulo' => 'Reunión de academia',
-        'fecha' => '2026-10-08',
-        'hora' => '10:30:00',
-        'categoria' => 'trabajo',
-        'descripcion' => 'Revisar calificaciones del 1er parcial.'
-    ],
-    [
-        'id' => 2,
-        'titulo' => 'Gimnasio',
-        'fecha' => '2026-10-09',
-        'hora' => '07:00:00',
-        'categoria' => 'ocio',
-        'descripcion' => null
-    ],
-    [
-        'id' => 3,
-        'titulo' => 'Entregar P4 de Aplicaciones Web',
-        'fecha' => '2026-10-12',
-        'hora' => null,
-        'categoria' => 'estudio',
-        'descripcion' => 'Subir el repositorio y publicar en DomCloud.'
-    ]
-];
-
-// Función que construye la tarjeta de un evento.
-function mostrarEvento(array $ev): string
-{
-    $html = '<article class="card">';
-
-    $html .= '<span class="card__badge">'
-           . e(nombreCategoria($ev['categoria']))
-           . '</span>';
-
-    $html .= '<h2 class="card__title">'
-           . e($ev['titulo'])
-           . '</h2>';
-
-    $cuando = formatearFecha($ev['fecha']);
-
-    // Agrega la hora si existe.
-    if ($ev['hora']) {
-        $cuando .= ' · ' . substr($ev['hora'], 0, 5);
-    }
-
-    $html .= '<p class="card__meta"><time datetime="'
-           . e($ev['fecha']) . '">'
-           . e($cuando)
-           . '</time></p>';
-
-    // Agrega la descripción si existe.
-    if ($ev['descripcion']) {
-        $html .= '<p class="card__text">'
-               . e($ev['descripcion'])
-               . '</p>';
-    }
-
-    $id = (int) $ev['id'];
-
-    $html .= '<div class="card__actions">'
-           . '<a href="editar.php?id=' . $id
-           . '" class="btn-secondary btn-sm">Editar</a>'
-           . '<form method="post" action="borrar.php" class="form-inline">'
-           . '<input type="hidden" name="id" value="' . $id . '">'
-           . '<button type="submit" class="btn-danger btn-sm">Borrar</button>'
-           . '</form></div>';
-
-    return $html . '</article>';
-}
-
+$categorias = $resultado->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lista de eventos</title>
+    <title>AgendaWeb - Inicio</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap"
+        rel="stylesheet"
+    >
+
+    <!-- Font Awesome -->
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    >
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body>
+    <!-- DECORACIÓN -->
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
 
-    <h1>Mis eventos</h1>
+    <!-- ================= SIDEBAR ================= -->
+    <aside class="sidebar">
+        <!-- LOGO -->
+        <div class="brand">
+            <div class="brand-icon">
+                <i class="fa-solid fa-calendar-days"></i>
+            </div>
 
-    <!-- Muestra el aviso cuando la URL contiene ?ok=1. -->
-    <?php if (isset($_GET['ok']) && $_GET['ok'] === '1'): ?>
-        <div class="alert alert--ok" role="status">
-            Evento guardado correctamente.
+            <div>
+                <h2>
+                    Agenda<span>Web</span>
+                </h2>
+                <p>
+                    Organiza tus momentos
+                </p>
+            </div>
         </div>
-    <?php endif; ?>
 
-    <!-- Muestra la cantidad de eventos. -->
-    <p><?= count($eventos) ?> eventos registrados</p>
+        <!-- MENÚ -->
+        <nav class="menu">
+            <a href="index.php" class="menu-item active">
+                <i class="fa-solid fa-house"></i>
+                <span>
+                    Inicio
+                </span>
+            </a>
 
-    <!-- Si no hay eventos, muestra el estado vacío. -->
-    <?php if (empty($eventos)): ?>
+            <a href="agenda.php" class="menu-item">
+                <i class="fa-solid fa-calendar-days"></i>
+                <span>
+                    Mi Agenda
+                </span>
+            </a>
+        </nav>
 
-        <div class="empty-state">
-            <h2>No tienes eventos registrados</h2>
-            <p>Cuando agregues un evento, aparecerá aquí.</p>
+        <!-- FRASE -->
+        <div class="sidebar-frase">
+            <i class="fa-solid fa-quote-left"></i>
+            <p>
+                "Organiza tu tiempo y disfruta cada momento."
+            </p>
+            <i class="fa-solid fa-quote-right"></i>
         </div>
 
-    <?php else: ?>
+        <!-- PIE DEL SIDEBAR -->
+        <div class="sidebar-footer">
+            <i class="fa-solid fa-heart"></i>
+            <span>
+                AgendaWeb
+            </span>
+        </div>
+    </aside>
 
-        <!-- Si hay eventos, genera las tarjetas automáticamente. -->
-        <section class="card-list" aria-label="Lista de eventos">
+    <!-- ================= CONTENIDO PRINCIPAL ================= -->
+    <main class="main">
+        <!-- TOPBAR -->
+        <header class="topbar">
+            <div class="usuario">
+                <div class="avatar">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <span>
+                    Mi Agenda
+                </span>
+            </div>
+        </header>
 
-            <?php foreach ($eventos as $ev): ?>
-                <?= mostrarEvento($ev) ?>
-            <?php endforeach; ?>
+        <!-- ================= INICIO ================= -->
+        <div class="inicio-contenido">
+            <!-- PRESENTACIÓN -->
+            <section class="inicio-presentacion">
+                <div>
+                    <p class="etiqueta">
+                        <i class="fa-solid fa-sparkles"></i>
+                        AGENDAWEB
+                    </p>
+                    <h2>
+                        Organiza tus momentos
+                    </h2>
+                    <p class="texto-inicio">
+                        Registra tus eventos, citas y actividades
+                        para mantener todo organizado en un solo lugar.
+                    </p>
+                </div>
 
-        </section>
+                <div class="decoracion-calendario">
+                    <i class="fa-solid fa-calendar-check"></i>
+                </div>
+            </section>
 
-    <?php endif; ?>
+            <!-- ================= FORMULARIO ================= -->
+            <section class="formulario-card">
+                <!-- TÍTULO DEL FORMULARIO -->
+                <div class="formulario-titulo">
+                    <div>
+                        <h3>
+                            Nuevo evento
+                        </h3>
+                        <p>
+                            Completa la información de tu evento.
+                        </p>
+                    </div>
+                    <i class="fa-solid fa-calendar-plus"></i>
+                </div>
 
+                <!-- FORMULARIO -->
+                <form
+                    class="formulario-agenda"
+                    method="POST"
+                    action="registrar.php"
+                >
+                    <!-- TÍTULO -->
+                    <div class="campo">
+                        <label for="titulo">
+                            <i class="fa-solid fa-heading"></i>
+                            Título del evento
+                        </label>
+
+                        <input
+                            type="text"
+                            id="titulo"
+                            name="titulo"
+                            placeholder="Ej. Entrega de pastel"
+                            maxlength="150"
+                            required
+                        >
+                    </div>
+
+                    <!-- CLIENTE -->
+                    <div class="campo">
+                        <label for="cliente">
+                            <i class="fa-solid fa-user"></i>
+                            Nombre del cliente
+                        </label>
+
+                        <input
+                            type="text"
+                            id="cliente"
+                            name="cliente"
+                            placeholder="Ej. María González"
+                            maxlength="150"
+                            required
+                        >
+                    </div>
+
+                    <!-- FECHA -->
+                    <div class="campo">
+                        <label for="fecha">
+                            <i class="fa-regular fa-calendar"></i>
+                            Fecha
+                        </label>
+
+                        <input
+                            type="date"
+                            id="fecha"
+                            name="fecha"
+                            required
+                        >
+                    </div>
+
+                    <!-- HORA -->
+                    <div class="campo">
+                        <label for="hora">
+                            <i class="fa-regular fa-clock"></i>
+                            Hora
+                        </label>
+
+                        <input
+                            type="time"
+                            id="hora"
+                            name="hora"
+                            required
+                        >
+                    </div>
+
+                    <!-- CATEGORÍA -->
+                    <div class="campo">
+                        <label for="categoria_id">
+                            <i class="fa-solid fa-tag"></i>
+                            Categoría
+                        </label>
+
+                        <select
+                            id="categoria_id"
+                            name="categoria_id"
+                            required
+                        >
+                            <option value="">
+                                Selecciona una categoría
+                            </option>
+
+                            <?php foreach ($categorias as $cat): ?>
+                                <option value="<?= (int) $cat['id'] ?>">
+                                    <?= htmlspecialchars(
+                                        $cat['nombre'],
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    ) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <!-- UBICACIÓN -->
+                    <div class="campo">
+                        <label for="ubicacion">
+                            <i class="fa-solid fa-location-dot"></i>
+                            Ubicación
+                        </label>
+
+                        <input
+                            type="text"
+                            id="ubicacion"
+                            name="ubicacion"
+                            placeholder="Ej. Guadalajara, Jalisco"
+                            maxlength="200"
+                        >
+                    </div>
+
+                    <!-- DESCRIPCIÓN -->
+                    <div class="campo campo-completo">
+                        <label for="descripcion">
+                            <i class="fa-solid fa-align-left"></i>
+                            Descripción
+                        </label>
+
+                        <textarea
+                            id="descripcion"
+                            name="descripcion"
+                            placeholder="Escribe los detalles del evento..."
+                            rows="6"
+                        ></textarea>
+                    </div>
+
+                    <!-- BOTONES -->
+                    <div class="formulario-botones">
+                        <!-- LIMPIAR -->
+                        <button
+                            type="reset"
+                            class="btn-limpiar"
+                        >
+                            <i class="fa-solid fa-rotate-left"></i>
+                            Limpiar
+                        </button>
+
+                        <!-- GUARDAR -->
+                        <button
+                            type="submit"
+                            class="btn-guardar"
+                        >
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            Guardar evento
+                        </button>
+                    </div>
+                </form>
+            </section>
+        </div>
+
+        <!-- FOOTER -->
+        <footer>
+            <i class="fa-solid fa-heart"></i>
+            AgendaWeb · Organiza tu tiempo
+        </footer>
+    </main>
 </body>
+
 </html>
 

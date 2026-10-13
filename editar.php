@@ -1,656 +1,366 @@
 <?php
-
 require_once "conexion.php";
-
 
 /* =========================
    OBTENER ID
    ========================= */
-
 $id = isset($_GET["id"])
     ? (int) $_GET["id"]
     : 0;
-
-
 if ($id <= 0) {
-
     header("Location: agenda.php");
-
     exit;
-
 }
-
 
 /* =========================
    ACTUALIZAR EVENTO
    ========================= */
-
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-
-
     $titulo = trim($_POST["titulo"] ?? "");
-
     $cliente = trim($_POST["cliente"] ?? "");
-
     $fecha = $_POST["fecha"] ?? "";
-
     $hora = $_POST["hora"] ?? "";
-
-    $categoria = $_POST["categoria"] ?? "";
-
+    $categoriaId = (int) ($_POST["categoria_id"] ?? 0);
     $ubicacion = trim($_POST["ubicacion"] ?? "");
-
     $descripcion = trim($_POST["descripcion"] ?? "");
 
-
-
     /* VALIDACIONES */
-
     if ($titulo === "") {
-
         die("El título es obligatorio.");
-
     }
-
 
     if ($cliente === "") {
-
         die("El nombre del cliente es obligatorio.");
-
     }
-
 
     if ($fecha === "") {
-
         die("La fecha es obligatoria.");
-
     }
-
 
     if ($hora === "") {
-
         die("La hora es obligatoria.");
-
     }
 
 
-    if ($categoria === "") {
-
-        die("La categoría es obligatoria.");
-
+    if ($categoriaId <= 0) {
+    die("La categoría seleccionada no es válida.");
     }
 
+    $stmt = $pdo->prepare(
+    "SELECT COUNT(*) FROM categorias WHERE id = :id"
+    );
+    $stmt->execute([":id" => $categoriaId]);
 
-
-    /* CATEGORÍAS PERMITIDAS */
-
-    $categoriasPermitidas = [
-        "Evento",
-        "Trabajo",
-        "Cita",
-        "Personal"
-    ];
-
-
-    if (!in_array($categoria, $categoriasPermitidas, true)) {
-
-        die("La categoría seleccionada no es válida.");
-
+    if (!$stmt->fetchColumn()) {
+    die("La categoría seleccionada no existe.");
     }
-
-
 
     /* ACTUALIZAR */
-
     $sql = "UPDATE eventos
             SET titulo = :titulo,
                 cliente = :cliente,
                 fecha = :fecha,
                 hora = :hora,
-                categoria = :categoria,
+                categoria_id = :categoria_id,
                 ubicacion = :ubicacion,
                 descripcion = :descripcion
             WHERE id = :id";
-
-
     $stmt = $pdo->prepare($sql);
 
-
     $stmt->execute([
-
         ":titulo" => $titulo,
-
         ":cliente" => $cliente,
-
         ":fecha" => $fecha,
-
         ":hora" => $hora,
-
-        ":categoria" => $categoria,
-
+        ":categoria_id" => $categoriaId,
         ":ubicacion" => $ubicacion,
-
         ":descripcion" => $descripcion,
-
         ":id" => $id
-
     ]);
 
-
     header("Location: agenda.php");
-
     exit;
-
 }
-
-
 
 /* =========================
    BUSCAR EVENTO
    ========================= */
-
 $sql = "SELECT
-            id,
-            titulo,
-            cliente,
-            fecha,
-            hora,
-            categoria,
-            ubicacion,
-            descripcion
+            eventos.id,
+            eventos.titulo,
+            eventos.cliente,
+            eventos.fecha,
+            eventos.hora,
+            eventos.categoria_id,
+            categorias.nombre AS categoria,
+            eventos.ubicacion,
+            eventos.descripcion
         FROM eventos
-        WHERE id = :id";
-
+        INNER JOIN categorias
+            ON eventos.categoria_id = categorias.id
+        WHERE eventos.id = :id";
 
 $stmt = $pdo->prepare($sql);
-
-
 $stmt->execute([
     ":id" => $id
 ]);
 
-
 $evento = $stmt->fetch();
-
-
 if (!$evento) {
-
     die("El evento no existe.");
-
 }
-
 ?>
 
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-
     <meta charset="UTF-8">
-
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
-
     <title>Editar evento - AgendaWeb</title>
 
-
     <!-- GOOGLE FONTS -->
-
     <link
         rel="preconnect"
         href="https://fonts.googleapis.com"
     >
-
     <link
         rel="preconnect"
         href="https://fonts.gstatic.com"
         crossorigin
     >
-
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
         rel="stylesheet"
     >
 
-
     <!-- FONT AWESOME -->
-
     <link
         rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
     >
 
-
     <!-- CSS -->
-
     <link
         rel="stylesheet"
         href="css/styles.css"
     >
-
-
-
     <style>
-
         /* =====================================================
            EDITAR EVENTO
            ===================================================== */
-
-
         .editar-pagina {
-
             min-height: calc(100vh - 80px);
-
             padding: 45px 60px 60px;
-
             background: #FFF9FA;
-
         }
-
-
 
         .editar-contenido {
-
             max-width: 900px;
-
             margin: 0 auto;
-
         }
-
-
 
         /* =========================
            ENCABEZADO
            ========================= */
-
         .editar-encabezado {
-
             display: flex;
-
             align-items: center;
-
             justify-content: space-between;
-
             gap: 25px;
-
             margin-bottom: 35px;
-
         }
-
-
 
         .editar-titulo {
-
             display: flex;
-
             align-items: center;
-
             gap: 18px;
-
         }
-
-
 
         .editar-icono {
-
             width: 52px;
-
             height: 52px;
-
             display: flex;
-
             align-items: center;
-
             justify-content: center;
-
             background: #F8E8EC;
-
             color: #7A2636;
-
             border-radius: 14px;
-
             font-size: 20px;
-
         }
-
-
 
         .editar-titulo-texto p {
-
             margin: 0 0 5px;
-
             font-family: "Inter", sans-serif;
-
             font-size: 12px;
-
             font-weight: 700;
-
             letter-spacing: 1.4px;
-
             text-transform: uppercase;
-
             color: #9B3F52;
-
         }
-
-
 
         .editar-titulo-texto h2 {
-
             margin: 0;
-
             font-family: "Playfair Display", serif;
-
             font-size: 34px;
-
             font-weight: 700;
-
             color: #5A1824;
-
         }
-
-
 
         .editar-regresar {
-
             display: inline-flex;
-
             align-items: center;
-
             justify-content: center;
-
             gap: 8px;
-
             height: 38px;
-
             padding: 0 16px;
-
             border: 1px solid #E2CDD2;
-
             border-radius: 9px;
-
             background: transparent;
-
             color: #7A2636;
-
             text-decoration: none;
-
             font-family: "Inter", sans-serif;
-
             font-size: 13px;
-
             font-weight: 600;
-
             transition: .2s ease;
-
         }
-
-
 
         .editar-regresar:hover {
-
             background: #F8E8EC;
-
             border-color: #E8B7C0;
-
         }
-
-
 
         /* =========================
            FORMULARIO
            ========================= */
-
         .editar-formulario {
-
             width: 100%;
-
         }
-
-
 
         .editar-campos {
-
             display: grid;
-
             grid-template-columns: 1fr 1fr;
-
             gap: 22px 25px;
-
         }
-
-
 
         .editar-campo {
-
             display: flex;
-
             flex-direction: column;
-
         }
-
-
 
         .editar-campo-completo {
-
             grid-column: 1 / -1;
-
         }
-
-
 
         .editar-campo label {
-
             margin-bottom: 8px;
-
             font-family: "Inter", sans-serif;
-
             font-size: 13px;
-
             font-weight: 600;
-
             color: #3F3034;
-
         }
-
-
 
         .editar-campo label i {
-
             margin-right: 7px;
-
             color: #9B3F52;
-
         }
 
-
-
         .editar-campo input,
-
         .editar-campo textarea,
-
         .editar-campo select {
-
             width: 100%;
-
             box-sizing: border-box;
-
             border: 1px solid #E2CDD2;
-
             border-radius: 10px;
-
             background: #FFFFFF;
-
             color: #3F3034;
-
             font-family: "Inter", sans-serif;
-
             font-size: 14px;
-
             outline: none;
-
             transition: .2s ease;
-
         }
-
-
 
         .editar-campo input,
-
         .editar-campo select {
-
             height: 45px;
-
             padding: 0 14px;
-
         }
-
-
 
         .editar-campo textarea {
-
             min-height: 130px;
-
             padding: 13px 14px;
-
             resize: vertical;
-
             line-height: 1.5;
-
         }
-
-
 
         .editar-campo input:focus,
-
         .editar-campo textarea:focus,
-
         .editar-campo select:focus {
-
             border-color: #9B3F52;
-
             box-shadow: 0 0 0 3px rgba(232, 183, 192, .25);
-
         }
-
-
 
         .editar-campo input:hover,
-
         .editar-campo textarea:hover,
-
         .editar-campo select:hover {
-
             border-color: #D2BFC4;
-
         }
-
-
 
         /* =========================
            INFORMACIÓN
            ========================= */
-
         .editar-info {
-
             margin-top: 28px;
-
             padding: 14px 16px;
-
             display: flex;
-
             align-items: center;
-
             gap: 10px;
-
             border-left: 3px solid #E8B7C0;
-
             background: #F8E8EC;
-
             color: #76666B;
-
             font-family: "Inter", sans-serif;
-
             font-size: 12px;
-
             line-height: 1.5;
-
         }
-
-
 
         .editar-info i {
-
             color: #7A2636;
-
             font-size: 15px;
-
         }
-
-
 
         /* =========================
            BOTONES
-           ========================= */
-
+          ========================= */
         .editar-acciones {
-
             display: flex;
-
             justify-content: flex-end;
-
             align-items: center;
-
             gap: 10px;
-
             margin-top: 30px;
-
         }
-
-
 
         .editar-btn-cancelar,
-
         .editar-btn-guardar {
-
             height: 38px;
-
             display: inline-flex;
-
             align-items: center;
-
             justify-content: center;
-
             gap: 7px;
-
             padding: 0 17px;
-
             border-radius: 9px;
-
             font-family: "Inter", sans-serif;
-
             font-size: 13px;
-
             font-weight: 600;
-
             text-decoration: none;
-
             cursor: pointer;
-
             transition: .2s ease;
-
         }
 
-
-
         .editar-btn-cancelar {
-
             border: 1px solid #E2CDD2;
-
             background: #F8E8EC;
-
             color: #7A2636;
 
         }
@@ -1049,83 +759,45 @@ if (!$evento) {
 
 
                     <!-- CATEGORÍA -->
-
                     <div class="editar-campo">
-
-
-                        <label for="categoria">
-
+                        <label for="categoria_id">
                             <i class="fa-solid fa-tag"></i>
-
                             Categoría
-
                         </label>
 
+                        <?php
+                        $stmtCategorias = $pdo->query(
+                            "SELECT id, nombre FROM categorias ORDER BY nombre"
+                        );
+                        $categorias = $stmtCategorias->fetchAll();
+                        ?>
 
-                        <select
-                            id="categoria"
-                            name="categoria"
-                            required
-                        >
+                        <select id="categoria_id" name="categoria_id" required>
+                            <option value="">Selecciona una categoría</option>
 
-
-                            <option value="">
-                                Selecciona una categoría
-                            </option>
-
-
-                            <option
-                                value="Evento"
-                                <?= ($evento["categoria"] ?? "") === "Evento" ? "selected" : "" ?>
-                            >
-                                Evento
-                            </option>
-
-
-                            <option
-                                value="Trabajo"
-                                <?= ($evento["categoria"] ?? "") === "Trabajo" ? "selected" : "" ?>
-                            >
-                                Trabajo
-                            </option>
-
-
-                            <option
-                                value="Cita"
-                                <?= ($evento["categoria"] ?? "") === "Cita" ? "selected" : "" ?>
-                            >
-                                Cita
-                            </option>
-
-
-                            <option
-                                value="Personal"
-                                <?= ($evento["categoria"] ?? "") === "Personal" ? "selected" : "" ?>
-                            >
-                                Personal
-                            </option>
-
-
+                            <?php foreach ($categorias as $cat): ?>
+                                <option
+                                    value="<?= (int) $cat['id'] ?>"
+                                    <?= (int) $evento['categoria_id'] === (int) $cat['id']
+                                        ? 'selected'
+                                        : '' ?>
+                                >
+                                    <?= htmlspecialchars(
+                                        $cat['nombre'],
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    ) ?>
+                                </option>
+                            <?php endforeach; ?>
                         </select>
-
-
                     </div>
 
-
-
                     <!-- UBICACIÓN -->
-
                     <div class="editar-campo">
-
-
                         <label for="ubicacion">
-
                             <i class="fa-solid fa-location-dot"></i>
-
                             Ubicación
-
                         </label>
-
 
                         <input
                             type="text"
@@ -1139,25 +811,14 @@ if (!$evento) {
                             ) ?>"
                             placeholder="Ej. Guadalajara, Jalisco"
                         >
-
-
                     </div>
 
-
-
                     <!-- DESCRIPCIÓN -->
-
                     <div class="editar-campo editar-campo-completo">
-
-
                         <label for="descripcion">
-
                             <i class="fa-solid fa-align-left"></i>
-
                             Descripción
-
                         </label>
-
 
                         <textarea
                             id="descripcion"
@@ -1169,82 +830,43 @@ if (!$evento) {
                             ENT_QUOTES,
                             "UTF-8"
                         ) ?></textarea>
-
-
                     </div>
-
-
                 </div>
-
-
 
                 <!-- =========================
                      INFORMACIÓN
                      ========================= -->
-
                 <div class="editar-info">
-
-
                     <i class="fa-solid fa-circle-info"></i>
-
-
                     <span>
-
                         Modifica los datos que necesites y después selecciona
                         <strong>Guardar cambios</strong>
                         para actualizar el evento.
-
                     </span>
-
-
                 </div>
-
-
 
                 <!-- =========================
                      BOTONES
                      ========================= -->
-
                 <div class="editar-acciones">
-
-
                     <a
                         href="agenda.php"
                         class="editar-btn-cancelar"
                     >
-
                         <i class="fa-solid fa-xmark"></i>
-
                         Cancelar
-
                     </a>
-
-
 
                     <button
                         type="submit"
                         class="editar-btn-guardar"
                     >
-
                         <i class="fa-solid fa-check"></i>
-
                         Guardar cambios
-
                     </button>
-
-
                 </div>
-
-
             </form>
-
-
         </div>
-
-
     </main>
-
-
 </body>
-
 </html>
