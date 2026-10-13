@@ -1,13 +1,16 @@
+
+
+```php
 <?php
 
-$host = "127.0.0.1";
-$db   = "agenda2";
-$user = "root";
-$pass = "123456";
+$host = "localhost";
+$db   = "definitive_conversation_paz_db";
+$user = "angenda2";
+$pass = "7p5-WB3fIe1qLO(7_h";
 
 try {
     $pdo = new PDO(
-        "mysql:host=$host;port=3306;dbname=$db;charset=utf8mb4",
+        "mysql:host=$host;dbname=$db;charset=utf8mb4",
         $user,
         $pass,
         [
@@ -16,6 +19,6 @@ try {
         ]
     );
 } catch (PDOException $e) {
-    die("Error de conexión: " . $e->getMessage());
+    die("Error de conexión a la base de datos.");
 }
 ?>
